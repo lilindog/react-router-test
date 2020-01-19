@@ -5,7 +5,8 @@
 
 interface Props {
     readonly routes:    Page[],
-    readonly basename?: string
+    readonly basename?: string,
+    readonly transition?: boolean
 }
 
 interface State {
@@ -18,5 +19,7 @@ interface Page {
     component:  any,
     keepAlive?: boolean,
     children?:  Page[]
-    $DISPLAY?:  boolean
+    $DISPLAY?:  boolean,
+    $ANIMATION?: string,
+    $UNIQUEID?: string
 }

@@ -15,12 +15,12 @@ class History extends Event{
 
     push ({path}) {
         window.history.pushState(null, null, path);
-        this.emit("push");
+        this.emit("push", null);
     }
 
     goBack () {
         window.history.back();
-        this.emit("back");
+        this.emit("back", null);
     }
 }
 

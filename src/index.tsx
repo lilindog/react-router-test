@@ -13,5 +13,5 @@ import routes from './router/index';
 import MyRouter from "./components/my-router";
 
 ReactDOM.render(
-    <MyRouter routes={routes} basename="" />
+    <MyRouter routes={routes} basename="" transition={true}/>
 , document.getElementById('root'));
