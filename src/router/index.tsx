@@ -13,12 +13,12 @@ export default [
         title: "页面1",
         path: "/page1",
         component: Page1,
-        keepAlive: !true,
+        keepAlive: true,
         children: [
             {
                 path: "/pagex",
                 component: Pagex,
-                keepAlive: !true
+                keepAlive: true
             },
             {
                 path: "/pagey",

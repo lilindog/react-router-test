@@ -21,7 +21,7 @@ export default class Page1 extends React.Component {
                 <p onClick={this.to.bind(this, "/page1/pagex")}>去往pagex</p>
                 <hr/>
                 <div>
-                    <MyRouter deep={1} routes={(this as any).props.route.children} transition={true}/>
+                    <MyRouter deep={1} routes={(this as any).props.route.children} transition={!true}/>
                 </div>
             </div>
         );
