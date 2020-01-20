@@ -5,7 +5,6 @@ import "./less/index.less";
 import history from "./lib/History.class.js";
 
 let 
-ID: number = 0,
 DEBUG: boolean = true,
 LEAVE_CLASS = "router-leave",
 ENTER_CLASS = "router-enter",
@@ -25,7 +24,6 @@ export default class MyRouter extends React.Component {
     }
     constructor (props: any) {
         super(props);
-        this.id = (++ID);
         this.init();    
     }
 
@@ -37,7 +35,7 @@ export default class MyRouter extends React.Component {
 
     log (str: string): void {
         DEBUG && 
-        console.log(`%c [${this.id}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
+        console.log(`%c [${(this as any).props.basename ? (this as any).props.basename : "/"}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
     }
 
     init (): any {
@@ -58,6 +56,7 @@ export default class MyRouter extends React.Component {
     resetPages (): void {
         this.state.pages.forEach((page: Page): void => {
             page.$DISPLAY = false;
+            delete page.$ANIMATION;
         });
         this.state.pages = this.state.pages.filter((page: Page): boolean => page.keepAlive);
     }
@@ -73,32 +72,32 @@ export default class MyRouter extends React.Component {
 
     changePage (): void {
         const oldPage: Page = this.state.pages.find((page: Page): boolean => page.$DISPLAY);
+
         this.resetPages();
+
         const 
         path:   string = (this as any).getRoutePath(),
         pages:  Page[] = (this as any).state.pages, 
         routes: Page[] = (this as any).props.routes;
+        
         const 
         pageInPages:  Page = pages.find((page: Page): boolean => this.find(page)),
         pageInRoutes: Page = routes.find((page: Page): boolean => this.find(page)),
-        error404:     Page = routes.find((page: Page): boolean => page.path === "*");
+        error404:     Page = routes.find((page: Page): boolean => page.path === "*"),
+        newPage = pageInRoutes || pageInPages;
 
         //过渡动画参照设定
-        if ((this as any).props.transition) {
+        if ((this as any).props.transition && (newPage !== oldPage)) {
             if (oldPage) {
                 oldPage.$UNIQUEID = this.buildUniqueid();
+                oldPage.$ANIMATION = LEAVE_CLASS;
                 oldPage.$DISPLAY = true;
                 !pages.includes(oldPage) && pages.push(oldPage);
             }
-            if (pageInPages) {
-                pageInPages.$UNIQUEID = this.buildUniqueid();
-                pageInPages.$ANIMATION = ENTER_CLASS;
-            }
-            if (pageInRoutes) {
-                pageInRoutes.$UNIQUEID = this.buildUniqueid();
-                pageInRoutes.$ANIMATION = ENTER_CLASS;
-            }
+            newPage.$ANIMATION = ENTER_CLASS;
         }
+
+        newPage && (newPage.$UNIQUEID = this.buildUniqueid());
 
         if (pageInPages) {
             (this as any).log(1);
@@ -118,37 +117,45 @@ export default class MyRouter extends React.Component {
             DEBUG && this.log("页面没有被匹配到");
         }
 
-        (this as any).log("pages ===>");
+        (this as any).log("哦，谢特妈惹法克！");
+        console.log("旧页面：");
+        console.log(oldPage);
+        console.log("当前：页面集合： ");
         console.log(pages);
 
         this.setState({pages: pages}, () => {
             if ((this as any).props.transition) {
-                console.log("哦，泻特妈惹法克！");
-
-                let oldPageEle = null;
-                const 
-                newPage = pageInRoutes || pageInPages,
-                newPageEle = document.getElementById(newPage.$UNIQUEID);
-                newPageEle.style.animation = `router-enter 1s`;
-                if (oldPage) {
-                    newPageEle.style.animation = `router-enter 1s ease 1s`;
-                    oldPageEle = document.getElementById(oldPage.$UNIQUEID);
-                    oldPageEle.style.animation = `router-leave 1s`;
-                }
-                setTimeout(() => {
-                    newPageEle.style.animation = "";
-                    delete newPage.$UNIQUEID;
-                    if (oldPage) {
-                        oldPageEle.style.display = "none";
-                        delete oldPage.$UNIQUEID;
-                        oldPageEle.style.animation = "";
-                        if (!oldPage.keepAlive) {
-                            document.body.removeChild(oldPageEle);
-                        }
+                if (!oldPage) {
+                    if (newPage) {
+                        (this as any).refs[newPage.$UNIQUEID].style.display = "block";
+                        (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
                     }
-                }, 1000);
-
-                
+                } else {
+                    //开始离开动画
+                    if (oldPage) {
+                        (this as any).refs[oldPage.$UNIQUEID].style.animation = `router-leave ${ANIMATION_TIME / 1000}s`;
+                    }
+                    //取消显示离开页面， 并开始进入页面的显示
+                    setTimeout(() => {
+                        if (oldPage) {
+                            oldPage.$DISPLAY = false;
+                            ((this as any).refs[oldPage.$UNIQUEID].style.display = "none");
+                        }
+                        
+                        if (newPage) {
+                            (this as any).refs[newPage.$UNIQUEID].style.display = "block";
+                            (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
+                        }
+                    }, ANIMATION_TIME);
+                    //删除离开旧页面
+                    setTimeout(() => {
+                        if (newPage) {
+                            // newPage.$DISPLAY = false;
+                            // oldPage && console.dir((this as any).refs[oldPage.$UNIQUEID])
+                            // oldPage && document.body.removeChild((this as any).refs[oldPage.$UNIQUEID]);
+                        }
+                    }, ANIMATION_TIME * 2);
+                }
             }
         });
     }
@@ -176,16 +183,16 @@ export default class MyRouter extends React.Component {
         const 
         state: State = (this as any).state, 
         props: Props = (this as any).props;
+
         return (
             <div className="router-wrap" ref="router-wrap">
                 {state.pages.map((page: Page): any => {
                     return (
                         <div
-                        id={page.$UNIQUEID}
+                        key={page.$UNIQUEID}
+                        ref={page.$UNIQUEID}
                         className="router-inwrap"
-                        style={{
-                            display: page.$DISPLAY ? "block" : "none"
-                        }}
+                        style={{display: page.$DISPLAY ? "block" : "none"}}
                         >
                             <page.component history={history} route={page}/>
                         </div>
