@@ -14,13 +14,15 @@ class History extends Event{
     }
 
     push ({path}) {
+        const oldPathname = location.pathname;
         window.history.pushState(null, null, path);
-        this.emit("push", null);
+        this.emit("push", oldPathname);
     }
 
     goBack () {
+        const oldPathname = location.pathname;
         window.history.back();
-        this.emit("back", null);
+        this.emit("back", oldPathname);
     }
 }
 

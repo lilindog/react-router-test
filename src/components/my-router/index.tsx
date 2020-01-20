@@ -22,6 +22,7 @@ export default class MyRouter extends React.Component {
     state: State = {
         pages: []   
     }
+    prevPage: Page = null;
     constructor (props: any) {
         super(props);
         this.init();    
@@ -40,13 +41,13 @@ export default class MyRouter extends React.Component {
 
     init (): any {
         history.on("change", () => {
-            const path = this.getRoutePath();
-            this.log("change触发：" + path);
-            if (path === this.prevPathname) {
+            const newPath: string = this.getRoutePath();
+            this.log("change触发：" + newPath);
+            if (newPath === this.prevPathname) {
                 this.log("change与上次pathname相同，不予动作！");
                 return;
             } else {
-                this.prevPathname = path;
+                this.prevPathname = newPath;
             }
             this.changePage();
         });
@@ -72,8 +73,8 @@ export default class MyRouter extends React.Component {
     }
 
     changePage (): void {
-        const oldPage: Page = this.state.pages.find((page: Page): boolean => page.$DISPLAY);
-
+        const hasTransition: boolean = (this as any).props.transition;
+        let oldPage: Page = this.prevPage;
         this.resetPages();
 
         const 
@@ -86,6 +87,8 @@ export default class MyRouter extends React.Component {
         pageInRoutes: Page = routes.find((page: Page): boolean => this.find(page)),
         error404:     Page = routes.find((page: Page): boolean => page.path === "*"),
         newPage = pageInRoutes || pageInPages;
+
+        // if (oldPage === newPage) oldPage = undefined;
 
         //过渡动画参照设定
         if ((this as any).props.transition && (newPage !== oldPage)) {
@@ -100,19 +103,23 @@ export default class MyRouter extends React.Component {
 
         newPage && (newPage.$UNIQUEID = this.buildUniqueid());
 
+        let is404 = false;
+
         if (pageInPages) {
             (this as any).log(1);
-            pageInPages.$DISPLAY = true;
+            if (!hasTransition) pageInPages.$DISPLAY = true;
         }
         else if (pageInRoutes) {
             (this as any).log(2);
-            pageInRoutes.$DISPLAY = true;
+            if (!hasTransition) pageInRoutes.$DISPLAY = true;
             pages.push(pageInRoutes);
         }
         else if (error404 && path !== "") {
-            console.log(path);
             (this as any).log(3);
-            error404.$DISPLAY = true;
+            is404 = true;
+            if (!hasTransition) error404.$DISPLAY = true;
+            error404.$UNIQUEID = this.buildUniqueid();
+            error404.$ANIMATION = ENTER_CLASS;
             pages.push(error404);
         } 
         else {
@@ -120,8 +127,6 @@ export default class MyRouter extends React.Component {
         }
 
         (this as any).log("哦，谢特妈惹法克！");
-        console.log("path:");
-        console.log(path);
         console.log("旧页面：");
         console.log(oldPage);
         console.log("当前：页面集合： ");
@@ -129,12 +134,14 @@ export default class MyRouter extends React.Component {
 
         this.setState({pages: pages}, () => {
             if ((this as any).props.transition) {
-                if (!oldPage) {
-                    if (newPage) {
-                        (this as any).refs[newPage.$UNIQUEID].style.display = "block";
-                        (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
-                    }
-                } else {
+                //404页面动画
+                if (is404) {
+                    this.prevPage = error404;
+                    (this as any).refs[error404.$UNIQUEID].style.display = "block";
+                    (this as any).refs[error404.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
+                } 
+                //正常离去、进入动画
+                else if (oldPage) {
                     //离去动画
                     if (oldPage) {
                         (this as any).refs[oldPage.$UNIQUEID].style.animation = `router-leave ${ANIMATION_TIME / 1000}s`;
@@ -142,14 +149,26 @@ export default class MyRouter extends React.Component {
                     //进入动画
                     setTimeout(() => {
                         if (oldPage) {
-                            oldPage.$DISPLAY = false;
                             ((this as any).refs[oldPage.$UNIQUEID].style.display = "none");
                         }
                         if (newPage) {
+                            this.prevPage = newPage;
                             (this as any).refs[newPage.$UNIQUEID].style.display = "block";
                             (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
+                        } else {
+                            this.prevPage = null;
                         }
                     }, ANIMATION_TIME);
+                } 
+                //仅有进入页面时候的进入动画
+                else {
+                    if (newPage) {
+                        this.prevPage = newPage;
+                        (this as any).refs[newPage.$UNIQUEID].style.display = "block";
+                        (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
+                    } else {
+                        this.prevPage = null;
+                    }
                 }
             }
         });
@@ -160,9 +179,7 @@ export default class MyRouter extends React.Component {
      */
     getRoutePath (): string {
         const deep = (this as any).props.deep;
-        let 
-        basename: string = (this as any).props.basename,
-        pathname: string = location.pathname;
+        let pathname: string = location.pathname;
         pathname = pathname.replace(/^\//, "");
         if (!pathname.indexOf("?")) {
             pathname = pathname.split("?")[0];
