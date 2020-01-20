@@ -5,7 +5,7 @@
 
 interface Props {
     readonly routes:    Page[],
-    readonly basename?: string,
+    readonly deep?: number,
     readonly transition?: boolean
 }
 

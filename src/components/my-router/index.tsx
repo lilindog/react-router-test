@@ -13,7 +13,7 @@ ANIMATION_TIME = 300;
 export default class MyRouter extends React.Component {
     static defaultProps: Props = {
         routes: [],
-        basename: "",
+        deep: 0,
         transition: false
     }
     uniqueid = 0;
@@ -35,17 +35,18 @@ export default class MyRouter extends React.Component {
 
     log (str: string): void {
         DEBUG && 
-        console.log(`%c [${(this as any).props.basename ? (this as any).props.basename : "/"}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
+        console.log(`%c [deep: ${(this as any).props.deep}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
     }
 
     init (): any {
         history.on("change", () => {
-            this.log("change触发：" + location.pathname);
-            if (location.pathname === this.prevPathname) {
+            const path = this.getRoutePath();
+            this.log("change触发：" + path);
+            if (path === this.prevPathname) {
                 this.log("change与上次pathname相同，不予动作！");
                 return;
             } else {
-                this.prevPathname = location.pathname;
+                this.prevPathname = path;
             }
             this.changePage();
         });
@@ -94,7 +95,7 @@ export default class MyRouter extends React.Component {
                 oldPage.$DISPLAY = true;
                 !pages.includes(oldPage) && pages.push(oldPage);
             }
-            newPage.$ANIMATION = ENTER_CLASS;
+            newPage && (newPage.$ANIMATION = ENTER_CLASS);
         }
 
         newPage && (newPage.$UNIQUEID = this.buildUniqueid());
@@ -109,6 +110,7 @@ export default class MyRouter extends React.Component {
             pages.push(pageInRoutes);
         }
         else if (error404 && path !== "") {
+            console.log(path);
             (this as any).log(3);
             error404.$DISPLAY = true;
             pages.push(error404);
@@ -118,6 +120,8 @@ export default class MyRouter extends React.Component {
         }
 
         (this as any).log("哦，谢特妈惹法克！");
+        console.log("path:");
+        console.log(path);
         console.log("旧页面：");
         console.log(oldPage);
         console.log("当前：页面集合： ");
@@ -131,30 +135,21 @@ export default class MyRouter extends React.Component {
                         (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
                     }
                 } else {
-                    //开始离开动画
+                    //离去动画
                     if (oldPage) {
                         (this as any).refs[oldPage.$UNIQUEID].style.animation = `router-leave ${ANIMATION_TIME / 1000}s`;
                     }
-                    //取消显示离开页面， 并开始进入页面的显示
+                    //进入动画
                     setTimeout(() => {
                         if (oldPage) {
                             oldPage.$DISPLAY = false;
                             ((this as any).refs[oldPage.$UNIQUEID].style.display = "none");
                         }
-                        
                         if (newPage) {
                             (this as any).refs[newPage.$UNIQUEID].style.display = "block";
                             (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
                         }
                     }, ANIMATION_TIME);
-                    //删除离开旧页面
-                    setTimeout(() => {
-                        if (newPage) {
-                            // newPage.$DISPLAY = false;
-                            // oldPage && console.dir((this as any).refs[oldPage.$UNIQUEID])
-                            // oldPage && document.body.removeChild((this as any).refs[oldPage.$UNIQUEID]);
-                        }
-                    }, ANIMATION_TIME * 2);
                 }
             }
         });
@@ -164,15 +159,16 @@ export default class MyRouter extends React.Component {
      * 获取当前路由url 不包含basename 
      */
     getRoutePath (): string {
+        const deep = (this as any).props.deep;
         let 
         basename: string = (this as any).props.basename,
         pathname: string = location.pathname;
-        pathname = pathname.replace(basename, "");
         pathname = pathname.replace(/^\//, "");
-        if (~pathname.indexOf("\/")) {
-            pathname = pathname.split("\/")[0];
+        if (!pathname.indexOf("?")) {
+            pathname = pathname.split("?")[0];
         }
-        return pathname.replace(/\//, "");
+        const pathArr: string[] = pathname.split("\/");
+        return pathArr[deep] ? pathArr[deep] : "";
     }
 
     componentDidMount (): void {
