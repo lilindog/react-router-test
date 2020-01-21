@@ -3,12 +3,13 @@
 import React from "react";
 import "./less/index.less";
 import history from "./lib/History.class.js";
+import { deepClone } from "./lib/tools.js";
 
 let 
 DEBUG: boolean = true,
 LEAVE_CLASS = "router-leave",
 ENTER_CLASS = "router-enter",
-ANIMATION_TIME = 300;
+ANIMATION_TIME = 1000;
 
 export default class MyRouter extends React.Component {
     static defaultProps: Props = {
@@ -17,7 +18,6 @@ export default class MyRouter extends React.Component {
         transition: false
     }
     uniqueid = 0;
-    id: number = 0;
     prevPathname: string = "";
     state: State = {
         pages: []   
@@ -25,16 +25,27 @@ export default class MyRouter extends React.Component {
     prevPage: Page = null;
     constructor (props: any) {
         super(props);
+        this.state.pages = this.clonePages();
         this.init();    
+    }
+
+    //克隆page， 并为每个page设置唯一id
+    clonePages (): Page[] {
+        console.log((this as any).props.routes);
+        const pages: Page[] = deepClone((this as any).props.routes);
+        pages.forEach((page: Page): void => {
+            page.$UNIQUEID = this.buildUniqueid();
+        });
+        return pages;
     }
 
     buildUniqueid (): string {
         if (this.uniqueid > Number.MAX_SAFE_INTEGER) this.uniqueid = 0;
         this.uniqueid ++;
-        return `UNIQUEID-${this.id}-${this.uniqueid}`;
+        return `UNIQUEID-${(this as any).props.deep}-${this.uniqueid}`;
     }
 
-    log (str: string): void {
+    log (str: string|number): void {
         DEBUG && 
         console.log(`%c [deep: ${(this as any).props.deep}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
     }
@@ -60,118 +71,48 @@ export default class MyRouter extends React.Component {
             page.$DISPLAY = false;
             delete page.$ANIMATION;
         });
-        this.state.pages = this.state.pages.filter((page: Page): boolean => page.keepAlive);
     }
 
-    find (page: Page): boolean {
+    find (): Page {
         const path: string = (this as any).getRoutePath();
-        if (page.path instanceof RegExp) {
-            return page.path.test(path);
-        } else {
-            return page.path.replace("\/", "") === path;
-        }
+        const page: Page = (this as any).state.pages.find((page: Page): boolean => {
+            if (page.path instanceof RegExp) {
+                return page.path.test(path);
+            } else {
+                return page.path.replace("\/", "") === path;
+            }
+        });
+        return page;
     }
 
     changePage (): void {
-        const hasTransition: boolean = (this as any).props.transition;
-        let oldPage: Page = this.prevPage;
         this.resetPages();
 
         const 
-        path:   string = (this as any).getRoutePath(),
-        pages:  Page[] = (this as any).state.pages, 
-        routes: Page[] = (this as any).props.routes;
-        
-        const 
-        pageInPages:  Page = pages.find((page: Page): boolean => this.find(page)),
-        pageInRoutes: Page = routes.find((page: Page): boolean => this.find(page)),
-        error404:     Page = routes.find((page: Page): boolean => page.path === "*"),
-        newPage = pageInRoutes || pageInPages;
+        hasTransition: boolean = (this as any).props.transition,
+        path = this.getRoutePath(),
+        oldPage: Page = this.prevPage,
+        newPage: Page = this.find(),
+        error404: Page = path ? (this as any).state.pages.find((page: Page): boolean => page.path === "*") : undefined;
 
-        // if (oldPage === newPage) oldPage = undefined;
-
-        //过渡动画参照设定
-        if ((this as any).props.transition && (newPage !== oldPage)) {
-            if (oldPage) {
-                oldPage.$UNIQUEID = this.buildUniqueid();
-                oldPage.$ANIMATION = LEAVE_CLASS;
-                oldPage.$DISPLAY = true;
-                !pages.includes(oldPage) && pages.push(oldPage);
-            }
-            newPage && (newPage.$ANIMATION = ENTER_CLASS);
+        //显示匹配页面
+        if (oldPage) {
+            oldPage.$DISPLAY = true;
         }
-
-        newPage && (newPage.$UNIQUEID = this.buildUniqueid());
-
-        let is404 = false;
-
-        if (pageInPages) {
-            (this as any).log(1);
-            if (!hasTransition) pageInPages.$DISPLAY = true;
-        }
-        else if (pageInRoutes) {
-            (this as any).log(2);
-            if (!hasTransition) pageInRoutes.$DISPLAY = true;
-            pages.push(pageInRoutes);
-        }
-        else if (error404 && path !== "") {
-            (this as any).log(3);
-            is404 = true;
-            if (!hasTransition) error404.$DISPLAY = true;
-            error404.$UNIQUEID = this.buildUniqueid();
-            error404.$ANIMATION = ENTER_CLASS;
-            pages.push(error404);
+        if (newPage) {
+            this.log(1);
+            newPage.$DISPLAY = true;
+        } 
+        else if (error404) {
+            this.log(2);
+            error404.$DISPLAY = true;
         } 
         else {
-            DEBUG && this.log("页面没有被匹配到");
+            this.log("哦，谢特；没有任何page匹配上！");
         }
 
-        (this as any).log("哦，谢特妈惹法克！");
-        console.log("旧页面：");
-        console.log(oldPage);
-        console.log("当前：页面集合： ");
-        console.log(pages);
-
-        this.setState({pages: pages}, () => {
-            if ((this as any).props.transition) {
-                //404页面动画
-                if (is404) {
-                    this.prevPage = error404;
-                    (this as any).refs[error404.$UNIQUEID].style.display = "block";
-                    (this as any).refs[error404.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
-                } 
-                //正常离去、进入动画
-                else if (oldPage) {
-                    //离去动画
-                    if (oldPage) {
-                        (this as any).refs[oldPage.$UNIQUEID].style.animation = `router-leave ${ANIMATION_TIME / 1000}s`;
-                    }
-                    //进入动画
-                    setTimeout(() => {
-                        if (oldPage) {
-                            ((this as any).refs[oldPage.$UNIQUEID].style.display = "none");
-                        }
-                        if (newPage) {
-                            this.prevPage = newPage;
-                            (this as any).refs[newPage.$UNIQUEID].style.display = "block";
-                            (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
-                        } else {
-                            this.prevPage = null;
-                        }
-                    }, ANIMATION_TIME);
-                } 
-                //仅有进入页面时候的进入动画
-                else {
-                    if (newPage) {
-                        this.prevPage = newPage;
-                        (this as any).refs[newPage.$UNIQUEID].style.display = "block";
-                        (this as any).refs[newPage.$UNIQUEID].style.animation = `router-enter ${ANIMATION_TIME / 1000}s`;
-                    } else {
-                        this.prevPage = null;
-                    }
-                }
-            }
-        });
+        console.log(this.state.pages);
+        this.setState({});
     }
 
     /**
@@ -200,16 +141,29 @@ export default class MyRouter extends React.Component {
         return (
             <div className="router-wrap" ref="router-wrap">
                 {state.pages.map((page: Page): any => {
-                    return (
-                        <div
-                        key={page.$UNIQUEID}
-                        ref={page.$UNIQUEID}
-                        className="router-inwrap"
-                        style={{display: page.$DISPLAY ? "block" : "none"}}
-                        >
-                            <page.component history={history} route={page}/>
-                        </div>
-                    );
+                    if (page.$DISPLAY) {
+                        return (
+                            <div
+                            className="router-inwrap"
+                            style={{display: "block"}}
+                            >
+                                <page.component history={history} route={page}/>
+                            </div> 
+                        );
+                    } else {
+                        if (page.keepAlive) {
+                            return (
+                                <div
+                                className="router-inwrap"
+                                style={{display: "none"}}
+                                >
+                                    <page.component history={history} route={page}/>
+                                </div>
+                            );
+                        } else {
+                            return null;
+                        }
+                    }
                 })}
             </div>
         );
