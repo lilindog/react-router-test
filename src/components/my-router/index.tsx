@@ -17,7 +17,7 @@ export default class MyRouter extends React.Component {
         transition: false
     }
     uniqueid = 0;
-    prevPathname: string = "";
+    prevPathname: string = null;
     state: State = {
         pages: []   
     }
@@ -29,7 +29,6 @@ export default class MyRouter extends React.Component {
 
     //克隆page， 并为每个page设置唯一id
     clonePages (): Page[] {
-        console.log((this as any).props.routes);
         const pages: Page[] = deepClone((this as any).props.routes);
         pages.forEach((page: Page): void => {
             page.$UNIQUEID = this.buildUniqueid();
