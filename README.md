@@ -1,4 +1,4 @@
-[路由组件使用介绍](src\components\my-router\README.md)
+[路由组件使用介绍](src/components/my-router/README.md)
 
 开发目录结构：
 ```
