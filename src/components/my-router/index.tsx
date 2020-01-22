@@ -7,9 +7,8 @@ import { deepClone } from "./lib/tools.js";
 
 let 
 DEBUG: boolean = true,
-LEAVE_CLASS = "router-leave",
-ENTER_CLASS = "router-enter",
-ANIMATION_TIME = 1000;
+ANIMATION_CLASS = "router-enter",
+ANIMATION_TIME = 500;
 
 export default class MyRouter extends React.Component {
     static defaultProps: Props = {
@@ -22,7 +21,6 @@ export default class MyRouter extends React.Component {
     state: State = {
         pages: []   
     }
-    prevPage: Page = null;
     constructor (props: any) {
         super(props);
         this.state.pages = this.clonePages();
@@ -91,27 +89,24 @@ export default class MyRouter extends React.Component {
         const 
         hasTransition: boolean = (this as any).props.transition,
         path = this.getRoutePath(),
-        oldPage: Page = this.prevPage,
         newPage: Page = this.find(),
         error404: Page = path ? (this as any).state.pages.find((page: Page): boolean => page.path === "*") : undefined;
 
         //显示匹配页面
-        if (oldPage) {
-            oldPage.$DISPLAY = true;
-        }
         if (newPage) {
             this.log(1);
             newPage.$DISPLAY = true;
+            if (hasTransition) newPage.$ANIMATION = ANIMATION_CLASS;
         } 
         else if (error404) {
             this.log(2);
             error404.$DISPLAY = true;
+            if (hasTransition) error404.$ANIMATION = ANIMATION_CLASS;
         } 
         else {
             this.log("哦，谢特；没有任何page匹配上！");
         }
-
-        console.log(this.state.pages);
+        
         this.setState({});
     }
 
@@ -145,7 +140,7 @@ export default class MyRouter extends React.Component {
                         return (
                             <div
                             className="router-inwrap"
-                            style={{display: "block"}}
+                            style={{display: "block", animation: page.$ANIMATION ? `${page.$ANIMATION} ${ANIMATION_TIME / 1000}s` : ""}}
                             >
                                 <page.component history={history} route={page}/>
                             </div> 

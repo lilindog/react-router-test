@@ -1,8 +1,7 @@
-## react-router-test
+[路由组件使用介绍](src\components\my-router\README.md)
 
-### 项目目录结构
-
-```markdown
+开发目录结构：
+```
 react-router-test
 │── .babelrc
 │── .gitignore
@@ -44,9 +43,11 @@ react-router-test
 │   │       │── less
 │   │       │   │── animation.less
 │   │       │   └── index.less
-│   │       └── lib
-│   │           │── Events.class.js
-│   │           └── History.class.js
+│   │       │── lib
+│   │       │   │── Events.class.js
+│   │       │   │── History.class.js
+│   │       │   └── tools.js
+│   │       └── README.md
 │   │── d.ts
 │   │── index.less
 │   │── index.tsx
@@ -60,11 +61,6 @@ react-router-test
 │   │   └── pagez.tsx
 │   │── router
 │   │   └── index.tsx
-│   │── store
-│   │   │── index.ts
-│   │   └── reducer
-│   │       │── message.ts
-│   │       └── user.ts
 │   └── utils
 │       │── context.ts
 │       │── request.ts
@@ -76,8 +72,3 @@ react-router-test
 └── tsconfig.json
 
 ```
-
-### 开发/打包
-
-* 打包使用 npm run buid
-* 开发使用 npm run start 或 npm run dev 
