@@ -44,7 +44,7 @@ export default class MyRouter extends React.Component {
 
     log (str: string|number): void {
         DEBUG && 
-        console.log(`%c [deep: ${(this as any).props.deep}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
+        console.log(`%c [${(this as any).props.debugName ? (this as any).props.debugName : "未命名"}-${(this as any).props.deep}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
     }
 
     init (): any {
