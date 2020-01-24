@@ -7,7 +7,8 @@ interface Props {
     readonly debugName?: string|number,
     readonly routes:    Page[],
     readonly deep?: number,
-    readonly transition?: boolean
+    readonly transition?: boolean,
+    readonly changeRules?: string[]
 }
 
 interface State {

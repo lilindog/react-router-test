@@ -5,7 +5,7 @@ import "./less/index.less";
 import history from "./lib/History.class.js";
 import { deepClone } from "./lib/tools.js";
 
-let 
+const 
 DEBUG: boolean = true,
 ANIMATION_CLASS = "router-enter",
 ANIMATION_TIME = 500;
@@ -14,7 +14,8 @@ export default class MyRouter extends React.Component {
     static defaultProps: Props = {
         routes: [],
         deep: 0,
-        transition: false
+        transition: false,
+        changeRules: [],
     }
     uniqueid = 0;
     prevPathname: string = null;
@@ -47,15 +48,66 @@ export default class MyRouter extends React.Component {
         console.log(`%c [${(this as any).props.debugName ? (this as any).props.debugName : "未命名"}-${(this as any).props.deep}]%c : %c ${str}`, "color: green", "color: red", "color: black; font-weight: 900");
     }
 
+    hasChange (): boolean {
+        const 
+        changeRules: string[] = (this as any).props.changeRules,
+        oldPath: string = this.prevPathname,
+        newPath: string = this.getRoutePath();
+        console.log(newPath || "/", oldPath || "/");
+        //用指定的changeRules规则来判断是否变动
+        if (changeRules && changeRules.length > 0) {
+            if (newPath === this.prevPathname) {
+                this.log("t0");
+                return false;
+            }
+            //新进入
+            if (oldPath === null) {
+                this.log("t1");
+                this.prevPathname = newPath;
+                return true;
+            }
+            //眺望非规则路由
+            else if (changeRules.includes(oldPath) && !changeRules.includes(newPath)) {
+                this.log("t2");
+                this.prevPathname = newPath;
+                return true;
+            }   
+            //非规则路由眺望规则路由
+            else if (changeRules.includes(newPath) && !changeRules.includes(oldPath)) {
+                this.log("t3");
+                this.prevPathname = newPath;
+                return true;
+            }
+            //规则路由之间跳转
+            else if (changeRules.includes(oldPath) && changeRules.includes(newPath)) {
+                this.log("t4");
+                this.prevPathname = newPath;
+                return true;
+            }
+            //非规则路由之间的跳转
+            else {
+                this.log("t5");
+                this.prevPathname = newPath;
+                return false;
+            }
+        }
+        //用pathname来比对判断是否变动
+        else {
+            if (newPath === this.prevPathname) {
+                return false;
+            } else {
+                this.prevPathname = newPath;
+                return true;
+            }
+        }
+    }
+
     init (): any {
         history.on("change", () => {
             const newPath: string = this.getRoutePath();
-            this.log("change触发：" + newPath);
-            if (newPath === this.prevPathname) {
+            if (!this.hasChange()) {
                 this.log("change与上次pathname相同，不予动作！");
                 return;
-            } else {
-                this.prevPathname = newPath;
             }
             this.changePage();
         });
@@ -89,7 +141,7 @@ export default class MyRouter extends React.Component {
         hasTransition: boolean = (this as any).props.transition,
         path = this.getRoutePath(),
         newPage: Page = this.find(),
-        error404: Page = path ? (this as any).state.pages.find((page: Page): boolean => page.path === "*") : undefined;
+        error404: Page = (this as any).state.pages.find((page: Page): boolean => page.path === "*");
 
         //显示匹配页面
         if (newPage) {
@@ -109,9 +161,6 @@ export default class MyRouter extends React.Component {
         this.setState({});
     }
 
-    /**
-     * 获取当前路由url 不包含basename 
-     */
     getRoutePath (): string {
         const deep = (this as any).props.deep;
         let pathname: string = location.pathname;

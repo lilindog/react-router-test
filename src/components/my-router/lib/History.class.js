@@ -13,6 +13,12 @@ class History extends Event{
         });
     }
 
+    replace ({path}) {
+        if (path === undefined) throw "[History.proptotype.replace({path:?})] path未指定";
+        window.history.replaceState(null, null, path);
+        this.emit("change", null);
+    }
+
     push ({path}) {
         const oldPathname = location.pathname;
         window.history.pushState(null, null, path);
